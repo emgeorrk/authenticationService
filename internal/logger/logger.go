@@ -14,10 +14,9 @@ func NewLogger(env string) *slog.Logger {
 
 	switch env {
 	case "local":
-		// logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-		logger = slog.New(console.NewHandler(os.Stdout, &console.HandlerOptions{Level: slog.LevelInfo}))
+		logger = slog.New(console.NewHandler(os.Stdout, &console.HandlerOptions{Level: slog.LevelInfo, AddSource: true}))
 	case "dev":
-		logger = slog.New(console.NewHandler(os.Stdout, &console.HandlerOptions{Level: slog.LevelDebug}))
+		logger = slog.New(console.NewHandler(os.Stdout, &console.HandlerOptions{Level: slog.LevelDebug, AddSource: true}))
 	case "prod":
 		logger = slog.New(console.NewHandler(os.Stdout, &console.HandlerOptions{Level: slog.LevelError}))
 	}
