@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"authenticationService/models"
+	"authenticationService/internal/models"
 )
 
 const (

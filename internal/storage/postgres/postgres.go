@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"authenticationService/internal/config"
-	"authenticationService/models"
+	"authenticationService/internal/models"
 	"database/sql"
 	"fmt"
 	"github.com/google/uuid"

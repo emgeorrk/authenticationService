@@ -2,7 +2,7 @@ package app
 
 import (
 	"authenticationService/internal/config"
-	"authenticationService/storage"
+	"authenticationService/internal/storage"
 	"log/slog"
 )
 
