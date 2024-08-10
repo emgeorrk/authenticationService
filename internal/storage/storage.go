@@ -2,11 +2,12 @@ package storage
 
 import (
 	"authenticationService/internal/models"
+	"errors"
 )
 
-const (
-	UserNotFound         = "user not found"
-	RefreshTokenNotFound = "refresh token not found"
+var (
+	ErrUserNotFound         = errors.New("user not found")
+	ErrRefreshTokenNotFound = errors.New("refresh token not found")
 )
 
 type TokenKeeper interface {
