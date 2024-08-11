@@ -13,7 +13,7 @@ type User struct {
 	UpdatedAt                   string `json:"updated_at"`
 }
 
-type RefreshToken struct {
+type Token struct {
 	JTI                   string    `json:"jti"`
 	UserID                string    `json:"user_id"`
 	RefreshTokenHash      string    `json:"refresh_token_hash"`
