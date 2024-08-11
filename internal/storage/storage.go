@@ -12,8 +12,9 @@ var (
 
 type TokenKeeper interface {
 	CreateUser(user *models.User) (string, error)
-	CreateRefreshToken(refreshToken *models.RefreshToken) (string, error)
+	CreateToken(refreshToken *models.Token) (string, error)
 	GetUserByID(id string) (*models.User, error)
-	GetRefreshTokenByID(id string) (*models.RefreshToken, error)
-	UpdateRefreshTokenStatus(id, newStatus string) error
+	GetTokenByJTI(JTI string) (*models.Token, error)
+	GetTokensByUserId(userID string) ([]models.Token, error)
+	UpdateRefreshTokenStatus(JTI, newStatus string) error
 }

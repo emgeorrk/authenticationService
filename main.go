@@ -1,10 +1,13 @@
 package main
 
 import (
+	"authenticationService/internal/app"
 	"authenticationService/internal/config"
 	"authenticationService/internal/logger"
-	"authenticationService/storage/postgres"
+	"authenticationService/internal/server"
+	"authenticationService/internal/storage/postgres"
 	"log/slog"
+	"net/http"
 
 	_ "github.com/lib/pq"
 )
@@ -22,7 +25,20 @@ func main() {
 		return
 	}
 
-	log.Info("Storage connected successfully")
+	log.Info("Connected PostgreSQL successfully",
+		slog.String("host", cfg.Storage.Host),
+		slog.Int("port", cfg.Storage.Port),
+		slog.String("database", cfg.Storage.Database),
+	)
 
-	_ = storage
+	a := app.New(cfg, storage, log)
+
+	router := server.New(*a)
+
+	log.Info("Server started", slog.String("address", cfg.Address), slog.Int("port", cfg.Port))
+	if err := http.ListenAndServe(cfg.Address, router); err != nil {
+		log.Error("failed to start server", "err", err)
+		return
+	}
+
 }
