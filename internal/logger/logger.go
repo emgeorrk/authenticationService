@@ -54,3 +54,10 @@ func MiddlewareLogger(log *slog.Logger) func(next http.Handler) http.Handler {
 		})
 	}
 }
+
+func Err(err error) slog.Attr {
+	return slog.Attr{
+		Key:   "error",
+		Value: slog.StringValue(err.Error()),
+	}
+}
