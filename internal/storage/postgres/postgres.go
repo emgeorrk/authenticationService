@@ -54,8 +54,16 @@ func NewStorage(storage config.Storage) (*Storage, error) {
     	created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     	access_token_expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     	refresh_token_expires_at TIMESTAMP WITH TIME ZONE NOT NULL);
-		CREATE INDEX idx_refresh_token_hash ON tokens(refresh_token_hash);
 	`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if _, err = stmt.Exec(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	stmt, err = db.Prepare(`CREATE INDEX IF NOT EXISTS idx_refresh_token_hash ON tokens(refresh_token_hash);`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -102,50 +110,117 @@ func (s *Storage) GetUserByID(id string) (*models.User, error) {
 	return &user, nil
 }
 
-func (s *Storage) CreateRefreshToken(refreshToken *models.RefreshToken) (string, error) {
+func (s *Storage) CreateToken(token *models.Token) (string, error) {
 	const op = "storage.postgres.CreateRefreshToken"
 
-	stmt, err := s.db.Prepare("INSERT INTO tokens (id, user_id, refresh_token_hash, ip_address, status, created_at, expires_at) VALUES ($1, $2, $3, $4, $5, $6, &7)")
+	stmt, err := s.db.Prepare(`
+		INSERT INTO tokens (
+                    jti,
+                    user_id,
+                    refresh_token_hash,
+                    ip_address,
+                    refresh_token_status,
+                    access_token_expires_at,
+                    refresh_token_expires_at)
+		VALUES ($1, $2, $3, $4, $5, $6, &7);
+	`)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	id := uuid.New()
 
-	if _, err = stmt.Exec(id.String(), refreshToken.UserID, refreshToken.RefreshTokenHash, refreshToken.IPAddress, refreshToken.Status, refreshToken.CreatedAt, refreshToken.ExpiresAt); err != nil {
+	if _, err = stmt.Exec(
+		id.String(),
+		token.UserID,
+		token.RefreshTokenHash,
+		token.IPAddress,
+		token.RefreshTokenStatus,
+		token.CreatedAt,
+		token.AccessTokenExpiresAt,
+		token.RefreshTokenExpiresAt,
+	); err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	return id.String(), nil
 }
 
-func (s *Storage) GetRefreshTokenByID(id string) (*models.RefreshToken, error) {
+func (s *Storage) GetTokenByJTI(JTI string) (*models.Token, error) {
 	const op = "storage.postgres.GetRefreshTokenByID"
 
-	stmt, err := s.db.Prepare("SELECT id, user_id, refresh_token_hash, ip_address, status, created_at, expires_at FROM tokens WHERE id = $1")
+	stmt, err := s.db.Prepare(`
+		SELECT JTI,
+		       user_id,
+		       refresh_token_hash,
+		       ip_address,
+		       refresh_token_status,
+		       created_at,
+		       access_token_expires_at,
+		       refresh_token_expires_at
+		FROM tokens
+		WHERE jti = $1;
+	`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var refreshToken models.RefreshToken
-	if err = stmt.QueryRow(id).Scan(&refreshToken.ID, &refreshToken.UserID, &refreshToken.RefreshTokenHash, &refreshToken.IPAddress, &refreshToken.Status, &refreshToken.CreatedAt, &refreshToken.ExpiresAt); err != nil {
+	var refreshToken models.Token
+	if err = stmt.QueryRow(JTI).Scan(&refreshToken); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &refreshToken, nil
 }
 
-func (s *Storage) UpdateRefreshTokenStatus(id, newStatus string) error {
+func (s *Storage) UpdateRefreshTokenStatus(JTI, newStatus string) error {
 	const op = "storage.postgres.UpdateRefreshTokenStatus"
 
-	stmt, err := s.db.Prepare("UPDATE tokens SET status = $1 WHERE id = $2")
+	stmt, err := s.db.Prepare("UPDATE tokens SET refresh_token_status = $1 WHERE jti = $2;")
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if _, err = stmt.Exec(newStatus, id); err != nil {
+	if _, err = stmt.Exec(newStatus, JTI); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
+}
+
+func (s *Storage) GetTokensByUserId(userID string) ([]models.Token, error) {
+	const op = "storage.postgres.GetTokensByUserId"
+
+	stmt, err := s.db.Prepare(`
+		SELECT JTI,
+		       user_id,
+		       refresh_token_hash,
+		       ip_address,
+		       refresh_token_status,
+		       created_at,
+		       access_token_expires_at,
+		       refresh_token_expires_at
+		FROM tokens
+		WHERE user_id = $1;
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	rows, err := stmt.Query(userID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var tokens []models.Token
+	for rows.Next() {
+		var token models.Token
+		if err = rows.Scan(&token); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+
+		tokens = append(tokens, token)
+	}
+
+	return tokens, nil
 }
