@@ -1,4 +1,5 @@
 env: "local" # local, dev, prod
+private_key: "secretpassword12345"
 storage:
   POSTGRES_HOST: "localhost"
   POSTGRES_PORT: 5432
@@ -7,5 +8,3 @@ storage:
   POSTGRES_DB: "authenticationService"
 http_server:
   address: "localhost:8080"
-  timeout: 5s
-  idle_timeout: 60s

@@ -4,19 +4,17 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"os"
-	"time"
 )
 
 type Config struct {
-	Env     string `yaml:"env" env-required:"true"`
-	Storage `yaml:"storage" env-required:"true"`
-	Server  `yaml:"http_server" env-required:"true"`
+	Env        string `yaml:"env" env-required:"true"`
+	PrivateKey string `yaml:"private_key" env-required:"true"`
+	Storage    `yaml:"storage" env-required:"true"`
+	Server     `yaml:"http_server" env-required:"true"`
 }
 
 type Server struct {
-	Address     string        `yaml:"address" env-default:"localhost:8080"`
-	Timeout     time.Duration `yaml:"timeout" env-default:"5s"`
-	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"120s"`
+	Address string `yaml:"address" env-default:"localhost:8080"`
 }
 
 type Storage struct {
