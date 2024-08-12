@@ -137,8 +137,20 @@ func New(a app.App) http.HandlerFunc {
 
 		// Создаем новую пару токенов
 		newToken := jwtlib.NewJWT(r.RemoteAddr, t1.Add(time.Duration(user.AccessTokenLifetimeMinutes)*time.Minute))
+		signedToken, err := newToken.SignedString([]byte(a.Config.PrivateKey))
+		if err != nil {
+			log.Error("failed to sign access token", logger.Err(err))
 
-		refreshToken, err := jwtlib.GenerateRefreshToken()
+			w.WriteHeader(http.StatusInternalServerError)
+
+			render.JSON(w, r, Response{
+				Error: "internal server error",
+			})
+
+			return
+		}
+
+		refreshToken, err := jwtlib.GenerateRefreshToken(signedToken)
 		if err != nil {
 			log.Error("failed to generate refresh token", logger.Err(err))
 
@@ -192,7 +204,7 @@ func New(a app.App) http.HandlerFunc {
 
 		// Отправляем токены пользователю
 		render.JSON(w, r, Response{
-			AccessToken:  newToken.Raw,
+			AccessToken:  signedToken,
 			RefreshToken: base64.StdEncoding.EncodeToString([]byte(refreshToken)),
 		})
 

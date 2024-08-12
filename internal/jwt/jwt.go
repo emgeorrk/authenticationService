@@ -26,20 +26,21 @@ func NewJWT(ip string, accessTokenDeadline time.Time) *jwt.Token {
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 
 	return token
 }
 
-func GenerateRefreshToken() (string, error) {
+func GenerateRefreshToken(accessToken string) (string, error) {
 	const op = "jwtlib.GenerateRefreshToken"
 
-	token := make([]byte, refreshTokenLength)
+	token := make([]byte, refreshTokenLength-7)
 	if _, err := rand.Read(token); err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	return hex.EncodeToString(token), nil
+	// Добавляем к refresh-токену последние 7 символов access-токена для связи
+	return hex.EncodeToString(token) + accessToken[len(accessToken)-7:], nil
 }
 
 func ValidateToken(token string) (string, error) {
