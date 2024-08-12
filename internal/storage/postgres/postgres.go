@@ -3,7 +3,9 @@ package postgres
 import (
 	"authenticationService/internal/config"
 	"authenticationService/internal/models"
+	"authenticationService/internal/storage"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 )
@@ -75,8 +77,6 @@ func NewStorage(storage config.Storage) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-// TODO: подумать над возвращаемыми значениями
-
 func (s *Storage) CreateUser(user *models.User) (string, error) {
 	const op = "storage.postgres.CreateUser"
 
@@ -97,21 +97,44 @@ func (s *Storage) CreateUser(user *models.User) (string, error) {
 func (s *Storage) GetUserByID(id string) (*models.User, error) {
 	const op = "storage.postgres.GetUserByID"
 
-	stmt, err := s.db.Prepare("SELECT id, email FROM users WHERE id = $1")
+	stmt, err := s.db.Prepare(`
+		SELECT id,
+		       name,
+		       email,
+		       max_active_token_pairs,
+		       access_token_lifetime_minutes,
+		       refresh_token_lifetime_minutes,
+		       created_at,
+		       updated_at 
+		FROM users 
+		WHERE id = $1;
+	`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	var user models.User
-	if err = stmt.QueryRow(id).Scan(&user.ID, &user.Email); err != nil {
+	if err = stmt.QueryRow(id).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.MaxActiveTokenPairs,
+		&user.AccessTokenLifetimeMinutes,
+		&user.RefreshTokenLifetimeMinutes,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &user, nil
 }
 
-func (s *Storage) CreateToken(token *models.Token) (string, error) {
-	const op = "storage.postgres.CreateRefreshToken"
+func (s *Storage) CreateToken(token *models.Token) error {
+	const op = "storage.postgres.CreateToken"
 
 	stmt, err := s.db.Prepare(`
 		INSERT INTO tokens (
@@ -120,18 +143,17 @@ func (s *Storage) CreateToken(token *models.Token) (string, error) {
                     refresh_token_hash,
                     ip_address,
                     refresh_token_status,
+		            created_at,
                     access_token_expires_at,
                     refresh_token_expires_at)
-		VALUES ($1, $2, $3, $4, $5, $6, &7);
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 	`)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	id := uuid.New()
-
 	if _, err = stmt.Exec(
-		id.String(),
+		token.JTI,
 		token.UserID,
 		token.RefreshTokenHash,
 		token.IPAddress,
@@ -140,10 +162,10 @@ func (s *Storage) CreateToken(token *models.Token) (string, error) {
 		token.AccessTokenExpiresAt,
 		token.RefreshTokenExpiresAt,
 	); err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	return id.String(), nil
+	return nil
 }
 
 func (s *Storage) GetTokenByJTI(JTI string) (*models.Token, error) {
@@ -215,7 +237,16 @@ func (s *Storage) GetTokensByUserId(userID string) ([]models.Token, error) {
 	var tokens []models.Token
 	for rows.Next() {
 		var token models.Token
-		if err = rows.Scan(&token); err != nil {
+		if err = rows.Scan(
+			&token.JTI,
+			&token.UserID,
+			&token.RefreshTokenHash,
+			&token.IPAddress,
+			&token.RefreshTokenStatus,
+			&token.CreatedAt,
+			&token.AccessTokenExpiresAt,
+			&token.RefreshTokenExpiresAt,
+		); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 

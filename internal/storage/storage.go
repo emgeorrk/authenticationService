@@ -12,7 +12,7 @@ var (
 
 type TokenKeeper interface {
 	CreateUser(user *models.User) (string, error)
-	CreateToken(refreshToken *models.Token) (string, error)
+	CreateToken(refreshToken *models.Token) error
 	GetUserByID(id string) (*models.User, error)
 	GetTokenByJTI(JTI string) (*models.Token, error)
 	GetTokensByUserId(userID string) ([]models.Token, error)
