@@ -19,7 +19,7 @@ import (
 )
 
 type Request struct {
-	GUID string `json:"GUID" validate:"required,uuid"`
+	GUID string `json:"GUID" validate:"required,uuid" binding:"required"`
 }
 
 type Response struct {

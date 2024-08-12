@@ -26,7 +26,7 @@ type Response struct {
 	Error string `json:"error,omitempty"`
 }
 
-// @Summary Create new user
+// @Summary Create a new user
 // @Description Returns a new user GUID
 // @Accept json
 // @Produce json
