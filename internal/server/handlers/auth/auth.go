@@ -6,6 +6,7 @@ import (
 	"authenticationService/internal/logger"
 	"authenticationService/internal/models"
 	"authenticationService/internal/storage"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"github.com/go-chi/chi/v5/middleware"
@@ -27,6 +28,15 @@ type Response struct {
 	RefreshToken string `json:"refresh_token,omitempty"`
 }
 
+// @Summary Create new token pair
+// @Description Returns a new access and refresh token pair
+// @Accept json
+// @Produce json
+// @Param Request body Request true "Request"
+// @Success 201 {object} Response
+// @Failure 400 {object} Response
+// @Failure 500 {object} Response
+// @Router /auth [post]
 func New(a app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "internal.server.handlers.auth.New"
@@ -155,7 +165,7 @@ func New(a app.App) http.HandlerFunc {
 		}
 
 		// Сохраняем токены в базе данных
-		if _, err := a.Storage.CreateToken(&models.Token{
+		if err := a.Storage.CreateToken(&models.Token{
 			JTI:                   newToken.Claims.(jwtlib.JWTClaims).ID,
 			UserID:                user.ID,
 			RefreshTokenHash:      string(refreshTokenHash),
@@ -178,12 +188,12 @@ func New(a app.App) http.HandlerFunc {
 
 		log.Info("token created", slog.Any("request", req))
 
-		// Отправляем токены пользователю
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusCreated)
 
+		// Отправляем токены пользователю
 		render.JSON(w, r, Response{
 			AccessToken:  newToken.Raw,
-			RefreshToken: refreshToken,
+			RefreshToken: base64.StdEncoding.EncodeToString([]byte(refreshToken)),
 		})
 
 		log.Info("response sent", slog.Any("request", req))

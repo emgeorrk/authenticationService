@@ -12,6 +12,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// @title authenticationService API
+// @version 1.0
+// @host localhost:8080
+// @BasePath /
+
 func main() {
 	cfg := config.MustLoad()
 

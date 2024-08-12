@@ -14,8 +14,8 @@ import (
 )
 
 type Request struct {
-	Name                        string `json:"name" validate:"required"`
-	Email                       string `json:"email" validate:"required,email"`
+	Name                        string `json:"name" validate:"required" binding:"required"`
+	Email                       string `json:"email" validate:"required,email" binding:"required"`
 	MaxActiveTokenPairs         int    `json:"max_active_token_pairs"`
 	AccessTokenLifetimeMinutes  int    `json:"access_token_lifetime_minutes"`
 	RefreshTokenLifetimeMinutes int    `json:"refresh_token_lifetime_minutes"`
@@ -26,6 +26,15 @@ type Response struct {
 	Error string `json:"error,omitempty"`
 }
 
+// @Summary Create new user
+// @Description Returns a new user GUID
+// @Accept json
+// @Produce json
+// @Param Request body Request true "Request"
+// @Success 201 {object} Response
+// @Failure 400 {object} Response
+// @Failure 500 {object} Response
+// @Router /users [post]
 func New(a app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "internal.server.handlers.auth.New"
