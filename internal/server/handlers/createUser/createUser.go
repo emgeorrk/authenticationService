@@ -40,7 +40,7 @@ func New(a app.App) http.HandlerFunc {
 		const op = "internal.server.handlers.auth.New"
 
 		log := a.Logger.With(
-			slog.String("handler", "auth"),
+			slog.String("handler", "createUser"),
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
