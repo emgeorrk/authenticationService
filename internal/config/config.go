@@ -8,9 +8,19 @@ import (
 
 type Config struct {
 	Env        string `yaml:"env" env-required:"true"`
+	SMTP       `yaml:"smtp" env-required:"true"`
 	PrivateKey string `yaml:"private_key" env-required:"true"`
 	Storage    `yaml:"storage" env-required:"true"`
 	Server     `yaml:"http_server" env-required:"true"`
+}
+
+type SMTP struct {
+	IsEnabled   bool   `yaml:"is_enabled" env-default:"false"`
+	Host        string `yaml:"host"`
+	Port        string `yaml:"port"`
+	PublicKey   string `yaml:"public_key"`
+	PrivateKey  string `yaml:"private_key"`
+	SenderEmail string `yaml:"sender_email"`
 }
 
 type Server struct {

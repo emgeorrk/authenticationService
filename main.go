@@ -5,9 +5,11 @@ import (
 	"authenticationService/internal/config"
 	"authenticationService/internal/logger"
 	"authenticationService/internal/server"
+	smtplib "authenticationService/internal/smtp"
 	"authenticationService/internal/storage/postgres"
 	"log/slog"
 	"net/http"
+	smtp2 "net/smtp"
 
 	_ "github.com/lib/pq"
 )
@@ -36,11 +38,19 @@ func main() {
 		slog.String("database", cfg.Storage.Database),
 	)
 
-	a := app.New(cfg, storage, log)
+	var smtp smtp2.Auth
+	if cfg.SMTP.IsEnabled {
+		smtp = smtplib.New(cfg.SMTP)
+		log.Info("Connected SMTP successfully")
+	} else {
+		log.Info("SMTP is disabled")
+	}
+
+	a := app.New(cfg, storage, log, smtp)
 
 	router := server.New(*a)
 
-	log.Info("Server started", slog.String("address", cfg.Address), slog.Int("port", cfg.Port))
+	log.Info("Server started", slog.String("address", cfg.Address))
 	if err := http.ListenAndServe(cfg.Address, router); err != nil {
 		log.Error("failed to start server", "err", err)
 		return

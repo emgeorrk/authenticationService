@@ -8,3 +8,10 @@ storage:
   POSTGRES_DB: "authenticationService"
 http_server:
   address: "localhost:8080"
+smtp:
+  is_enabled: true
+  host: "in-v3.mailjet.com"
+  port: "587"
+  mailjet_public_key: ""
+  mailjet_private_key: ""
+  mailjet_sender_email: ""
