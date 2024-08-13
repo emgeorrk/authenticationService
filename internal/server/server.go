@@ -6,6 +6,7 @@ import (
 	"authenticationService/internal/logger"
 	"authenticationService/internal/server/handlers/auth"
 	"authenticationService/internal/server/handlers/createUser"
+	"authenticationService/internal/server/handlers/refresh"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -24,6 +25,7 @@ func New(a app.App) *chi.Mux {
 
 	router.Post("/users", createUser.New(a))
 	router.Post("/auth", auth.New(a))
+	router.Post("/refresh", refresh.New(a))
 
 	if a.Config.Env == "local" {
 		router.Get("/swagger/*", httpSwagger.WrapHandler)
