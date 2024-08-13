@@ -76,6 +76,16 @@ func New(a app.App) http.HandlerFunc {
 
 		log.Info("request validated", slog.Any("request", req))
 
+		if req.MaxActiveTokenPairs == 0 {
+			req.MaxActiveTokenPairs = 5
+		}
+		if req.AccessTokenLifetimeMinutes == 0 {
+			req.AccessTokenLifetimeMinutes = 60
+		}
+		if req.RefreshTokenLifetimeMinutes == 0 {
+			req.RefreshTokenLifetimeMinutes = 129600
+		}
+
 		newUser := &models.User{
 			ID:                          uuid.New().String(),
 			Name:                        req.Name,
