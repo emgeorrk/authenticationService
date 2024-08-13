@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 )
 
 type Storage struct {
@@ -77,21 +76,33 @@ func NewStorage(storage config.Storage) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) CreateUser(user *models.User) (string, error) {
+func (s *Storage) CreateUser(user *models.User) error {
 	const op = "storage.postgres.CreateUser"
 
-	id := uuid.New()
-
-	stmt, err := s.db.Prepare("INSERT INTO users (id, name, email) VALUES ($1, $2, $3)")
+	stmt, err := s.db.Prepare(`
+		INSERT INTO users (id,
+		                   name,
+		                   email,
+		                   max_active_token_pairs,
+		                   access_token_lifetime_minutes,
+		                   refresh_token_lifetime_minutes) VALUES ($1, $2, $3, $4, $5, $6);
+	`)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if _, err = stmt.Exec(id.String(), user.Name, user.Email); err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+	if _, err = stmt.Exec(
+		user.ID,
+		user.Name,
+		user.Email,
+		user.MaxActiveTokenPairs,
+		user.AccessTokenLifetimeMinutes,
+		user.RefreshTokenLifetimeMinutes,
+	); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	return id.String(), nil
+	return nil
 }
 
 func (s *Storage) GetUserByID(id string) (*models.User, error) {
@@ -187,12 +198,21 @@ func (s *Storage) GetTokenByJTI(JTI string) (*models.Token, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var refreshToken models.Token
-	if err = stmt.QueryRow(JTI).Scan(&refreshToken); err != nil {
+	var token models.Token
+	if err = stmt.QueryRow(JTI).Scan(
+		&token.JTI,
+		&token.UserID,
+		&token.RefreshTokenHash,
+		&token.IPAddress,
+		&token.RefreshTokenStatus,
+		&token.CreatedAt,
+		&token.AccessTokenExpiresAt,
+		&token.RefreshTokenExpiresAt,
+	); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &refreshToken, nil
+	return &token, nil
 }
 
 func (s *Storage) UpdateRefreshTokenStatus(JTI, newStatus string) error {

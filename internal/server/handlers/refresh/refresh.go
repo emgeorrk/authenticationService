@@ -8,6 +8,7 @@ import (
 	smtplib "authenticationService/internal/smtp"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
@@ -122,11 +123,11 @@ func New(a app.App) http.HandlerFunc {
 
 		log.Info("access token validated", slog.Any("request", req))
 
-		claims := decodedAccessToken.Claims.(jwtlib.JWTClaims)
+		claims := decodedAccessToken.Claims.(*jwtlib.JWTClaims)
 
 		// Проверяем что access токен истек
 		t1 := time.Now()
-		if t1.Before(claims.ExpiresAt.Time) {
+		if t1.Before(claims.ExpiresAt) {
 			log.Error("access token is not expired")
 
 			w.WriteHeader(http.StatusBadRequest)
@@ -138,10 +139,11 @@ func New(a app.App) http.HandlerFunc {
 			return
 		}
 
-		log.Info("access token expired checked", slog.Any("request", req))
+		log.Info("access token expire checked", slog.Any("request", req))
 
 		// Проверяем, что refresh токен не истек
 		pair, err := a.Storage.GetTokenByJTI(claims.ID)
+		fmt.Println(claims.ID)
 		if err != nil {
 			log.Error("failed to get token by JTI", logger.Err(err))
 
@@ -258,17 +260,9 @@ func New(a app.App) http.HandlerFunc {
 		if claims.ClientIp != r.RemoteAddr && a.Config.SMTP.IsEnabled {
 			if err := smtplib.SendEmail(a, user.Email, "IP address changed", "Your IP address has been changed. If it was not you, please contact us."); err != nil {
 				log.Error("failed to send email", logger.Err(err))
-
-				w.WriteHeader(http.StatusInternalServerError)
-
-				render.JSON(w, r, Response{
-					Error: "internal server error",
-				})
-
-				return
+			} else {
+				log.Info("email notification sent", slog.Any("request", req))
 			}
-
-			log.Info("email notification sent", slog.Any("request", req))
 		}
 
 		log.Info("client ip checked", slog.Any("request", req))

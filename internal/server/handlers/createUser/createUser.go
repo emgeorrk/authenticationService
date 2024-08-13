@@ -5,6 +5,7 @@ import (
 	"authenticationService/internal/logger"
 	"authenticationService/internal/models"
 	"encoding/json"
+	"fmt"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
@@ -85,26 +86,25 @@ func New(a app.App) http.HandlerFunc {
 		}
 
 		// Создаем пользователя в базе данных
-		id, err := a.Storage.CreateUser(newUser)
-		if err != nil {
+		if err := a.Storage.CreateUser(newUser); err != nil {
 			log.Error("failed to create user", logger.Err(err))
 
 			w.WriteHeader(http.StatusInternalServerError)
 
 			render.JSON(w, r, Response{
-				Error: "failed to create user",
+				Error: fmt.Sprintf("failed to create user: %s", err.Error()),
 			})
 
 			return
 		}
 
 		// Возвращаем GUID созданного пользователя
-		log.Info("user created", slog.String("GUID", id))
+		log.Info("user created", slog.String("GUID", newUser.ID))
 
 		w.WriteHeader(http.StatusCreated)
 
 		render.JSON(w, r, Response{
-			GUID: id,
+			GUID: newUser.ID,
 		})
 
 		return
