@@ -119,7 +119,7 @@ func New(a app.App) http.HandlerFunc {
 		cntActiveAccessTokens := 0
 		t1 := time.Now()
 		for _, token := range tokens {
-			if t1.Before(token.AccessTokenExpiresAt) {
+			if t1.Before(token.RefreshTokenExpiresAt) {
 				cntActiveAccessTokens++
 			}
 		}
