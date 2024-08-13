@@ -27,6 +27,8 @@ func SendEmail(a app.App, to, subject, body string) error {
 		slog.String("op", op),
 	)
 
+	subject = "Subject: " + subject
+
 	smtpHost := a.Config.SMTP.Host
 	smtpPort := a.Config.SMTP.Port
 	senderEmail := a.Config.SMTP.SenderEmail
@@ -77,6 +79,8 @@ func SendEmail(a app.App, to, subject, body string) error {
 	if err != nil {
 		return fmt.Errorf("%s: error closing connection: %v", op, err)
 	}
+
+	log.Info("email sent successfully")
 
 	return nil
 }

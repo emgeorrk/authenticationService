@@ -18,9 +18,9 @@ type SMTP struct {
 	IsEnabled   bool   `yaml:"is_enabled" env-default:"false"`
 	Host        string `yaml:"host"`
 	Port        string `yaml:"port"`
-	PublicKey   string `yaml:"public_key"`
-	PrivateKey  string `yaml:"private_key"`
-	SenderEmail string `yaml:"sender_email"`
+	PublicKey   string `yaml:"mailjet_public_key"`
+	PrivateKey  string `yaml:"mailjet_private_key"`
+	SenderEmail string `yaml:"mailjet_sender_email"`
 }
 
 type Server struct {

@@ -3,6 +3,7 @@ package jwtlib
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -12,18 +13,19 @@ import (
 const refreshTokenLength = 32
 
 type JWTClaims struct {
-	ClientIp string `json:"client_ip"`
+	ClientIp  string    `json:"client_ip"`
+	ExpiresAt time.Time `json:"exp_at"`
 	jwt.RegisteredClaims
 }
 
 func NewJWT(ip string, accessTokenDeadline time.Time) *jwt.Token {
 	claims := JWTClaims{
-		ClientIp: ip,
+		ClientIp:  ip,
+		ExpiresAt: accessTokenDeadline,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ID:        uuid.New().String(),
-			Issuer:    "authenticationService",
-			ExpiresAt: jwt.NewNumericDate(accessTokenDeadline),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ID:       uuid.New().String(),
+			Issuer:   "authenticationService",
+			IssuedAt: jwt.NewNumericDate(time.Now()),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
@@ -45,17 +47,18 @@ func GenerateRefreshToken(accessToken string) (string, error) {
 
 func ValidateToken(secretKey, tokenString string) (*jwt.Token, error) {
 	const op = "jwtlib.ValidateToken"
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("%s: unexpected signing method: %v", op, token.Header["alg"])
 		}
 		return []byte(secretKey), nil
-	})
-	if err != nil {
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS512.Name}))
+	if err != nil && !errors.Is(err, jwt.ErrTokenExpired) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if _, ok := token.Claims.(jwt.MapClaims); !ok || !token.Valid {
+	if _, ok := token.Claims.(*JWTClaims); !ok || !token.Valid {
+		fmt.Println(ok, token.Valid)
 		return nil, fmt.Errorf("%s: token is invalid", op)
 	}
 
