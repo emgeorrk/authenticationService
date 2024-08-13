@@ -43,6 +43,21 @@ func GenerateRefreshToken(accessToken string) (string, error) {
 	return hex.EncodeToString(token) + accessToken[len(accessToken)-7:], nil
 }
 
-func ValidateToken(token string) (string, error) {
-	return "user_id", nil
+func ValidateToken(secretKey, tokenString string) (*jwt.Token, error) {
+	const op = "jwtlib.ValidateToken"
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("%s: unexpected signing method: %v", op, token.Header["alg"])
+		}
+		return []byte(secretKey), nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if _, ok := token.Claims.(jwt.MapClaims); !ok || !token.Valid {
+		return nil, fmt.Errorf("%s: token is invalid", op)
+	}
+
+	return token, nil
 }
