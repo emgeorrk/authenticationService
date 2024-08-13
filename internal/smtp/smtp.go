@@ -20,7 +20,7 @@ func New(cfg config.SMTP) smtp.Auth {
 	return auth
 }
 
-func SendEmail(a app.App, auth smtp.Auth, to, subject, body string) error {
+func SendEmail(a app.App, to, subject, body string) error {
 	const op = "smtp.SendEmail"
 
 	log := a.Logger.With(
@@ -51,7 +51,7 @@ func SendEmail(a app.App, auth smtp.Auth, to, subject, body string) error {
 		return fmt.Errorf("%s: error starting TLS: %v", op, err)
 	}
 
-	if err = conn.Auth(auth); err != nil {
+	if err = conn.Auth(a.SMTP); err != nil {
 		return fmt.Errorf("%s: error during authentication: %v", op, err)
 	}
 

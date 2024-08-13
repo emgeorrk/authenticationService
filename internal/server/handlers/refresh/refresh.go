@@ -5,6 +5,7 @@ import (
 	jwtlib "authenticationService/internal/jwt"
 	"authenticationService/internal/logger"
 	"authenticationService/internal/models"
+	smtplib "authenticationService/internal/smtp"
 	"encoding/base64"
 	"encoding/json"
 	"github.com/go-chi/chi/v5/middleware"
@@ -254,8 +255,20 @@ func New(a app.App) http.HandlerFunc {
 		log.Info("refresh token status updated", slog.Any("request", req))
 
 		// В случае смены ip отправляем письмо
-		if claims.ClientIp != r.RemoteAddr {
-			// TODO: отправка письма через smtp
+		if claims.ClientIp != r.RemoteAddr && a.Config.SMTP.IsEnabled {
+			if err := smtplib.SendEmail(a, user.Email, "IP address changed", "Your IP address has been changed. If it was not you, please contact us."); err != nil {
+				log.Error("failed to send email", logger.Err(err))
+
+				w.WriteHeader(http.StatusInternalServerError)
+
+				render.JSON(w, r, Response{
+					Error: "internal server error",
+				})
+
+				return
+			}
+
+			log.Info("email notification sent", slog.Any("request", req))
 		}
 
 		log.Info("client ip checked", slog.Any("request", req))
